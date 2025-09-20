@@ -1,0 +1,11 @@
+openai>=1.35.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+pyaudio>=0.2.11
+websockets>=11.0.0
+python-dotenv>=1.0.0
+asyncio
+base64
+io
+threading
