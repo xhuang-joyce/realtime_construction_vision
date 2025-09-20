@@ -24,11 +24,36 @@ class OpenAIRealtimeClient:
         self.session_id = None
         
         # System prompt
+        # self.system_prompt = (
+        #     "You are an expert in computer vision and human gesture analysis. "
+        #     "When I describe what I see in an image, analyze the human gestures, "
+        #     "body language, and their potential meanings. Be concise but informative."
+        # )
+
+    #     self.system_prompt = (
+    #     "You are a construction site safety and quality assurance assistant specializing in real-time component installation verification. "
+    #     "Your primary role is to analyze visual input from construction workers and compare their actions against engineering blueprints and proper installation procedures. "
+    #     "You must:\n"
+    #     "1. Identify construction components, tools, and installation orientations in real-time\n"
+    #     "2. Detect misalignments, incorrect component selection, or improper installation angles\n"
+    #     "3. Provide immediate voice feedback with clear, actionable instructions\n"
+    #     "4. Respond to voice queries about installation procedures, component specifications, or safety protocols\n"
+    #     "5. Use construction terminology appropriate for field workers\n"
+    #     "6. Prioritize safety warnings and critical misalignments\n"
+    #     "Be concise, direct, and use imperative language for corrections. Always acknowledge when installations are correct to build confidence."
+    # )
         self.system_prompt = (
-            "You are an expert in computer vision and human gesture analysis. "
-            "When I describe what I see in an image, analyze the human gestures, "
-            "body language, and their potential meanings. Be concise but informative."
-        )
+        "You are a helpful assistant that guides users through the process of properly placing a lid on a thermos cup. "
+        "Your role is to:\n"
+        "1. Observe the user's hand position, lid orientation, and cup alignment in real-time\n"
+        "2. Detect if the lid is upside down, misaligned, or incorrectly positioned\n"
+        "3. Provide clear, step-by-step voice guidance to help the user correctly place the lid\n"
+        "4. Give immediate feedback when mistakes are detected (wrong orientation, misalignment, etc.)\n"
+        "5. Confirm when the lid is properly positioned and ready to be secured\n"
+        "6. Respond to user voice questions about the lid placement process\n"
+        "Use encouraging, clear language and provide specific directional instructions. "
+        "Always acknowledge correct actions to build confidence."
+    )
         
         # Callbacks
         self.on_text_response: Optional[Callable[[str], None]] = None
@@ -195,7 +220,27 @@ class OpenAIRealtimeClient:
             if self.on_error:
                 self.on_error(str(e))
     
-    async def send_image_for_analysis(self, base64_image: str, prompt: str = "describe what is in front of you"):
+    # async def send_image_for_analysis(self, base64_image: str, prompt: str = 
+    # "Analyze this construction site image and identify: "
+    # "1. What construction component or tool the worker is handling "
+    # "2. The orientation and positioning of the component "
+    # "3. Any visible alignment with structural elements, blueprints, or installation points "
+    # "4. Whether the component appears to be the correct type and size for the intended installation "
+    # "5. Any safety concerns or procedural violations "
+    # "Focus on detecting misalignments, incorrect orientations, wrong components, or installation errors. "
+    # "If everything appears correct, confirm proper alignment and procedure."):
+        
+    async def send_image_for_analysis(self, base64_image: str, prompt: str = 
+    "Analyze this image showing a user attempting to place a lid on a thermos cup. Identify: "
+    "1. The position and orientation of the lid in the user's hands "
+    "2. Whether the lid is right-side up or upside down "
+    "3. The alignment between the lid and the cup opening "
+    "4. The distance between the lid and cup "
+    "5. Any threading or locking mechanism alignment "
+    "6. Whether the user is holding the lid correctly for proper placement "
+    "Provide specific guidance if the lid is incorrectly oriented, misaligned, or improperly positioned. "
+    "If the positioning looks correct, confirm and guide the next step."):
+   
         """Send image for analysis using the new GA image input support"""
         if not self.is_connected or not self.websocket:
             logger.error("Not connected")
