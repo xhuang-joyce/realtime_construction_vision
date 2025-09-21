@@ -10,6 +10,7 @@ import cv2
 import base64
 
 from .camera_capture import CameraCapture
+from .screen_capture import ScreenCapture
 from .microphone_capture import MicrophoneCapture
 from .openai_realtime import OpenAIRealtimeClient
 from .audio_handler import AudioResponseHandler
@@ -28,23 +29,33 @@ class RealtimeConversationAgent:
                  api_key: str,
                  camera_index: int = 0,
                  microphone_index: Optional[int] = None,
-                 visual_context_interval: int = 10):  # 每10秒更新一次视觉上下文
+                 visual_context_interval: int = 10,
+                 input_source: str = "camera"):  # "camera" or "screen"
         """
-        初始化实时对话代理
+        Initialize realtime conversation agent
         
         Args:
             api_key: OpenAI API key
             camera_index: Camera device index
             microphone_index: Microphone device index (None for default)
             visual_context_interval: Update visual context every N seconds
+            input_source: "camera" for camera input, "screen" for screen capture
         """
         self.api_key = api_key
         self.visual_context_interval = visual_context_interval
+        self.input_source = input_source
         
-        # 初始化组件
-        self.camera = CameraCapture(camera_index)
-        self.microphone = MicrophoneCapture()  # device_index 在 start_capture() 时传递
-        self.microphone_index = microphone_index  # 保存设备索引
+        # Initialize visual input component based on source
+        if input_source == "screen":
+            self.visual_input = ScreenCapture(fps=15)
+            logger.info("Using screen capture as visual input")
+        else:
+            self.visual_input = CameraCapture(camera_index)
+            logger.info(f"Using camera {camera_index} as visual input")
+        
+        # Initialize other components
+        self.microphone = MicrophoneCapture()  # device_index passed in start_capture()
+        self.microphone_index = microphone_index  # Save device index
         self.ai_client = OpenAIRealtimeClient(api_key)
         self.audio_handler = AudioResponseHandler(api_key)
         
@@ -101,9 +112,13 @@ class RealtimeConversationAgent:
             # 保存当前事件循环引用
             self.main_loop = asyncio.get_running_loop()
             
-            # 启动摄像头
-            if not self.camera.start_capture():
-                raise Exception("Failed to start camera")
+            # Start visual input (camera or screen)
+            if self.input_source == "screen":
+                self.visual_input.start_capture()
+                logger.info("Screen capture started")
+            else:
+                if not self.visual_input.start_capture():
+                    raise Exception("Failed to start camera")
             
             # 启动麦克风
             if not self.microphone.start_capture(device_index=self.microphone_index):
@@ -147,9 +162,8 @@ class RealtimeConversationAgent:
         """发送欢迎消息"""
         try:
             welcome_text = (
-                "Hello! I'm your realtime AI assistant. I can see through your camera "
-                "and hear through your microphone. Feel free to ask me anything about "
-                "what I can see, or just have a natural conversation with me!"
+                "Hello! I'm your realtime AI Construction copilot. I can see through your camera "
+                "and hear through your microphone. Feel free to ask me anything on our journey together"
             )
             
             await self.ai_client.send_text_message(welcome_text)
@@ -179,19 +193,19 @@ class RealtimeConversationAgent:
                 await asyncio.sleep(1)
     
     async def _update_visual_context(self):
-        """更新视觉上下文"""
+        """Update visual context from camera or screen"""
         try:
-            current_frame = self.camera.get_current_frame()
+            current_frame = self.visual_input.get_current_frame()
             if current_frame is not None:
-                # 转换为 base64
-                base64_image = self.camera.frame_to_base64(current_frame)
+                # Convert to base64
+                base64_image = self.visual_input.frame_to_base64(current_frame)
                 self.current_visual_context = base64_image
                 self.last_visual_update = time.time()
                 
-                # 发送视觉上下文到 AI（静默更新，不要求回应）
+                # Send visual context to AI (silent update, no response required)
                 await self._send_visual_context_update(base64_image)
                 
-                logger.debug("Visual context updated")
+                logger.debug(f"Visual context updated from {self.input_source}")
         except Exception as e:
             logger.error(f"Error updating visual context: {e}")
     
@@ -371,9 +385,9 @@ class RealtimeConversationAgent:
         if self.conversation_task:
             self.conversation_task.cancel()
         
-        # 停止组件
-        if self.camera:
-            self.camera.stop_capture()
+        # Stop components
+        if self.visual_input:
+            self.visual_input.stop_capture()
         if self.microphone:
             self.microphone.stop_capture()
         if self.audio_handler:

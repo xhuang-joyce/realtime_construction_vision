@@ -42,19 +42,38 @@ class OpenAIRealtimeClient:
     #     "6. Prioritize safety warnings and critical misalignments\n"
     #     "Be concise, direct, and use imperative language for corrections. Always acknowledge when installations are correct to build confidence."
     # )
+
+    # water bottle lid placement prompt
+    #     self.system_prompt = (
+    #     "You are a helpful assistant that guides users through the process of properly placing a lid on a thermos cup. "
+    #     "Your role is to:\n"
+    #     "1. Observe the user's hand position, lid orientation, and cup alignment in real-time\n"
+    #     "2. Detect if the lid is upside down, misaligned, or incorrectly positioned\n"
+    #     "3. Provide clear, step-by-step voice guidance to help the user correctly place the lid\n"
+    #     "4. Give immediate feedback when mistakes are detected (wrong orientation, misalignment, etc.)\n"
+    #     "5. Confirm when the lid is properly positioned and ready to be secured\n"
+    #     "6. Respond to user voice questions about the lid placement process\n"
+    #     "Use encouraging, clear language and provide specific directional instructions. "
+    #     "Always acknowledge correct actions to build confidence."
+    # )
+    
         self.system_prompt = (
-        "You are a helpful assistant that guides users through the process of properly placing a lid on a thermos cup. "
-        "Your role is to:\n"
-        "1. Observe the user's hand position, lid orientation, and cup alignment in real-time\n"
-        "2. Detect if the lid is upside down, misaligned, or incorrectly positioned\n"
-        "3. Provide clear, step-by-step voice guidance to help the user correctly place the lid\n"
-        "4. Give immediate feedback when mistakes are detected (wrong orientation, misalignment, etc.)\n"
-        "5. Confirm when the lid is properly positioned and ready to be secured\n"
-        "6. Respond to user voice questions about the lid placement process\n"
-        "Use encouraging, clear language and provide specific directional instructions. "
-        "Always acknowledge correct actions to build confidence."
-    )
-        
+        "You are a fire sprinkler installation specialist providing real-time guidance for installing the red pipe sprinkler system. "
+        "You guide workers through this exact sequence:\n"
+        "Step 1: Install main horizontal red pipe with proper bracket mounting\n"
+        "Step 2: Connect vertical drop pipe downward from horizontal main\n"
+        "Step 3: Install sprinkler head at bottom of vertical drop (threads UP)\n"
+        "Step 4: Install horizontal branch pipe from main junction\n"
+        "Step 5: Add second vertical drop with sprinkler head\n"
+        "Step 6: Verify 0.6-meter clearance around all sprinkler heads\n"
+        "For each action you observe, tell the worker:\n"
+        "- Which step they are on\n"
+        "- If the component orientation is correct (pipes: check direction, sprinkler heads: threads must face UP)\n"
+        "- If they need to move to the next step or fix current step\n"
+        "- Safety warnings for clearance violations\n"
+        "Use direct commands: 'Stop', 'Rotate the pipe', 'Move to Step 3', 'Good, proceed'"
+        )
+
         # Callbacks
         self.on_text_response: Optional[Callable[[str], None]] = None
         self.on_audio_response: Optional[Callable[[bytes], None]] = None
@@ -230,17 +249,29 @@ class OpenAIRealtimeClient:
     # "Focus on detecting misalignments, incorrect orientations, wrong components, or installation errors. "
     # "If everything appears correct, confirm proper alignment and procedure."):
         
+    # async def send_image_for_analysis(self, base64_image: str, prompt: str = 
+    #     "Analyze this image showing a user attempting to place a lid on a thermos cup. Identify: "
+    #     "1. The position and orientation of the lid in the user's hands "
+    #     "2. Whether the lid is right-side up or upside down "
+    #     "3. The alignment between the lid and the cup opening "
+    #     "4. The distance between the lid and cup "
+    #     "5. Any threading or locking mechanism alignment "
+    #     "6. Whether the user is holding the lid correctly for proper placement "
+    #     "Provide specific guidance if the lid is incorrectly oriented, misaligned, or improperly positioned. "
+    #     "If the positioning looks correct, confirm and guide the next step."):
+
     async def send_image_for_analysis(self, base64_image: str, prompt: str = 
-    "Analyze this image showing a user attempting to place a lid on a thermos cup. Identify: "
-    "1. The position and orientation of the lid in the user's hands "
-    "2. Whether the lid is right-side up or upside down "
-    "3. The alignment between the lid and the cup opening "
-    "4. The distance between the lid and cup "
-    "5. Any threading or locking mechanism alignment "
-    "6. Whether the user is holding the lid correctly for proper placement "
-    "Provide specific guidance if the lid is incorrectly oriented, misaligned, or improperly positioned. "
-    "If the positioning looks correct, confirm and guide the next step."):
-   
+        "Look at this sprinkler installation and tell me exactly:\n"
+        "1. What red pipe component is the worker currently handling\n"
+        "2. Where they are trying to install it (main horizontal, vertical drop, branch, etc.)\n"
+        "3. Is the component oriented correctly: \n"
+        "   - Pipes: correct angle and direction for water flow\n"
+        "   - Sprinkler heads: threads facing UP (not down or sideways)\n"
+        "4. Which installation step this represents (1-6 from the sequence)\n"
+        "5. Any objects within 60cm of sprinkler heads that would block water spray\n"
+        "6. Is this step complete, in progress, or incorrectly done\n"
+        "Be specific about what's wrong and what action to take next."):
+            
         """Send image for analysis using the new GA image input support"""
         if not self.is_connected or not self.websocket:
             logger.error("Not connected")

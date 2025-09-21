@@ -42,12 +42,13 @@ class RealtimeConversationApp:
         try:
             logger.info("🚀 Initializing True Realtime Conversation Agent...")
             
-            # 创建实时对话代理
+            # Create realtime conversation agent
             self.agent = RealtimeConversationAgent(
                 api_key=self.config.get('api_key'),
                 camera_index=self.config.get('camera_index', 0),
                 microphone_index=self.config.get('microphone_index'),
-                visual_context_interval=self.config.get('visual_context_interval', 10)
+                visual_context_interval=self.config.get('visual_context_interval', 10),
+                input_source=self.config.get('input_source', 'camera')
             )
             
             logger.info("✅ Agent initialized successfully")

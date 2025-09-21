@@ -31,6 +31,8 @@ def main():
                        help="Camera index (default: 0)")
     parser.add_argument("--interval", type=int, default=3,
                        help="Frame interval in seconds (default: 3)")
+    parser.add_argument("--input-source", type=str, choices=['camera', 'screen'], 
+                       default='camera', help="Input source: camera or screen capture")
     
     args = parser.parse_args()
     
@@ -43,10 +45,12 @@ def main():
         cmd = [sys.executable, "main.py", "--list-devices"]
     elif args.vision:
         cmd = [sys.executable, "main.py", "--vision-only", 
-               f"--camera-index={args.camera}", f"--frame-interval={args.interval}"]
+               f"--camera-index={args.camera}", f"--frame-interval={args.interval}",
+               f"--input-source={args.input_source}"]
     else:  # Default to voice mode
         cmd = [sys.executable, "main.py", "--realtime",
-               f"--camera-index={args.camera}", f"--frame-interval={args.interval}"]
+               f"--camera-index={args.camera}", f"--frame-interval={args.interval}",
+               f"--input-source={args.input_source}"]
     
     # Show what we're running
     print("🚀 Real-time Vision Analysis Launcher")

@@ -31,11 +31,13 @@ from dotenv import load_dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.camera_capture import CameraCapture
+from src.screen_capture import ScreenCapture
 from src.frame_processor import RealtimeVisionPipeline
 from src.audio_handler import AudioResponseHandler
 from src.openai_realtime import OpenAIRealtimeClient
 from src.multimodal_processor import RealtimeMultimodalPipeline
 from src.microphone_capture import MicrophoneCapture
+from src.realtime_conversation_agent import RealtimeConversationAgent
 from src.config import Config, ErrorHandler
 
 # Configure logging
@@ -70,12 +72,13 @@ class RealtimeVisionApp:
         self.frame_interval = config.get('frame_interval')
         self.use_realtime_api = config.get('use_realtime_api')
         self.show_video = config.get('show_video')
+        self.input_source = config.get('input_source', 'camera')  # 'camera' or 'screen'
         
         # Initialize components
-        self.multimodal_pipeline = None  # For realtime API with voice
-        self.vision_pipeline = None      # For vision-only mode
+        self.realtime_agent = None       # For realtime API with voice (supports camera/screen)
+        self.vision_pipeline = None      # For vision-only mode (camera only)
         self.audio_handler = None
-        self.camera = None
+        self.visual_input = None         # CameraCapture or ScreenCapture
         
         # Application state
         self.is_running = False
@@ -114,43 +117,69 @@ class RealtimeVisionApp:
         try:
             logger.info("Initializing Real-time Vision Application...")
             
-            # Initialize audio handler
-            logger.info("Setting up audio response handler...")
-            audio_config = self.config.get_audio_config()
-            self.audio_handler = AudioResponseHandler(
-                api_key=self.api_key, 
-                use_tts_fallback=audio_config['use_tts_fallback']
-            )
-            
-            if not self.audio_handler.start():
-                logger.error("Failed to start audio handler")
-                return False
-            
-            # Initialize vision pipeline
-            logger.info("Setting up vision processing pipeline...")
-            camera_config = self.config.get_camera_config()
-            self.vision_pipeline = RealtimeVisionPipeline(
-                api_key=self.api_key,
-                camera_index=camera_config['camera_index'],
-                frame_interval=self.frame_interval,
-                use_realtime_api=self.use_realtime_api
-            )
-            
-            # Set up callbacks for responses
-            self.vision_pipeline.set_callbacks(
-                text_callback=self._handle_text_response,
-                audio_callback=self._handle_audio_response,
-                error_callback=self._handle_error_response
-            )
-            
-            # Start vision pipeline
-            if not await self.vision_pipeline.start_pipeline():
-                logger.error("Failed to start vision pipeline")
-                return False
-            
-            # Setup camera for display if needed
-            if self.show_video:
-                self.camera = self.vision_pipeline.camera
+            if self.use_realtime_api:
+                # Use RealtimeConversationAgent for realtime API (supports camera/screen)
+                logger.info(f"Setting up realtime conversation agent with {self.input_source} input...")
+                self.realtime_agent = RealtimeConversationAgent(
+                    api_key=self.api_key,
+                    camera_index=self.camera_index,
+                    input_source=self.input_source,
+                    visual_context_interval=self.frame_interval
+                )
+                
+                # Setup visual input for display if needed
+                if self.show_video:
+                    if self.input_source == "screen":
+                        self.visual_input = ScreenCapture(fps=15)
+                    else:
+                        self.visual_input = CameraCapture(self.camera_index)
+                    self.visual_input.start_capture()
+                
+                logger.info("Realtime conversation agent initialized!")
+                
+            else:
+                # Use vision pipeline for vision-only mode (camera only)
+                if self.input_source == "screen":
+                    logger.error("Screen input only supported with --realtime mode")
+                    return False
+                
+                # Initialize audio handler
+                logger.info("Setting up audio response handler...")
+                audio_config = self.config.get_audio_config()
+                self.audio_handler = AudioResponseHandler(
+                    api_key=self.api_key, 
+                    use_tts_fallback=audio_config['use_tts_fallback']
+                )
+                
+                if not self.audio_handler.start():
+                    logger.error("Failed to start audio handler")
+                    return False
+                
+                # Initialize vision pipeline
+                logger.info("Setting up vision processing pipeline...")
+                camera_config = self.config.get_camera_config()
+                self.vision_pipeline = RealtimeVisionPipeline(
+                    api_key=self.api_key,
+                    camera_index=camera_config['camera_index'],
+                    frame_interval=self.frame_interval,
+                    use_realtime_api=self.use_realtime_api
+                )
+                
+                # Set up callbacks for responses
+                self.vision_pipeline.set_callbacks(
+                    text_callback=self._handle_text_response,
+                    audio_callback=self._handle_audio_response,
+                    error_callback=self._handle_error_response
+                )
+                
+                # Start vision pipeline
+                if not await self.vision_pipeline.start_pipeline():
+                    logger.error("Failed to start vision pipeline")
+                    return False
+                
+                # Setup camera for display if needed
+                if self.show_video:
+                    self.visual_input = self.vision_pipeline.camera
             
             logger.info("Application initialized successfully!")
             return True
@@ -292,14 +321,23 @@ class RealtimeVisionApp:
             
             logger.info("Starting Real-time Vision Analysis...")
             print("\n🚀 Real-time Vision Analysis Started!")
-            print("Looking for gestures and analyzing what's in front of the camera...")
+            if self.input_source == "screen":
+                print("Analyzing your screen content in real-time...")
+            else:
+                print("Looking for gestures and analyzing what's in front of the camera...")
+            
+            # Start realtime agent if using realtime API
+            if self.use_realtime_api and self.realtime_agent:
+                await self.realtime_agent.start_conversation()
+                logger.info("Realtime conversation agent started")
             
             # Main application loop
             while self.is_running:
                 try:
                     # Display video if enabled
-                    if self.show_video and self.camera:
-                        self.camera.display_frame("Real-time Vision Analysis")
+                    if self.show_video and self.visual_input:
+                        window_title = f"Real-time Vision Analysis - {self.input_source.title()}"
+                        self.visual_input.display_frame(window_title)
                         
                         # Check for quit command
                         key = cv2.waitKey(1) & 0xFF
@@ -335,6 +373,10 @@ class RealtimeVisionApp:
             
             self.is_running = False
             
+            # Stop realtime agent
+            if self.realtime_agent:
+                await self.realtime_agent.stop_conversation()
+            
             # Stop vision pipeline
             if self.vision_pipeline:
                 self.vision_pipeline.stop_pipeline()
@@ -342,6 +384,10 @@ class RealtimeVisionApp:
             # Stop audio handler
             if self.audio_handler:
                 self.audio_handler.stop()
+            
+            # Stop visual input
+            if self.visual_input:
+                self.visual_input.stop_capture()
             
             # Close OpenCV windows
             cv2.destroyAllWindows()
@@ -376,6 +422,8 @@ async def main():
                        help="Camera device index")
     parser.add_argument("--frame-interval", type=int,
                        help="Send camera frame every N seconds")
+    parser.add_argument("--input-source", type=str, choices=['camera', 'screen'], 
+                       default='camera', help="Input source: camera or screen capture")
     parser.add_argument("--no-video", action="store_true",
                        help="Don't show video window")
     parser.add_argument("--log-level", type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
@@ -396,6 +444,8 @@ async def main():
             config.set('camera_index', args.camera_index)
         if args.frame_interval is not None:
             config.set('frame_interval', args.frame_interval)
+        if args.input_source:
+            config.set('input_source', args.input_source)
         if args.no_video:
             config.set('show_video', False)
         if args.log_level:
