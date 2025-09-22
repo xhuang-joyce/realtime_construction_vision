@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-真正的实时 AI 对话代理主程序
-True Realtime AI Conversation Agent Main Program
-
-基于 OpenAI Realtime API (2025年8月28日更新) 构建的真正实时对话系统
-- 持续的语音对话：用户可以随时说话，AI 随时回应
-- 视觉上下文感知：AI 能看到当前环境，并在对话中引用
-- 多模态融合：语音、视觉、文本无缝结合
-"""
 
 import asyncio
 import sys
@@ -47,7 +38,7 @@ class RealtimeConversationApp:
                 api_key=self.config.get('api_key'),
                 camera_index=self.config.get('camera_index', 0),
                 microphone_index=self.config.get('microphone_index'),
-                visual_context_interval=self.config.get('visual_context_interval', 10),
+                visual_context_interval=self.config.get('visual_context_interval', 2),
                 input_source=self.config.get('input_source', 'camera')
             )
             
@@ -183,7 +174,7 @@ Examples:
         print(f"   🔑 API Key: {'✅ Set' if config.get('api_key') else '❌ Missing'}")
         print(f"   📹 Camera: {config.get('camera_index', 0)}")
         print(f"   🎤 Microphone: {config.get('microphone_index', 'Default')}")
-        print(f"   ⏰ Visual update interval: {config.get('visual_context_interval', 10)}s")
+        print(f"   ⏰ Visual update interval: {config.get('visual_context_interval', 2)}s")
         print()
         
         # 创建并运行应用

@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 class RealtimeConversationAgent:
     """
-    真正的实时对话代理 - 支持持续语音对话和视觉上下文感知
     True Realtime Conversation Agent with continuous voice chat and visual context awareness
     """
     
@@ -29,7 +28,7 @@ class RealtimeConversationAgent:
                  api_key: str,
                  camera_index: int = 0,
                  microphone_index: Optional[int] = None,
-                 visual_context_interval: int = 10,
+                 visual_context_interval: int = 2,
                  input_source: str = "camera"):  # "camera" or "screen"
         """
         Initialize realtime conversation agent
@@ -59,43 +58,34 @@ class RealtimeConversationAgent:
         self.ai_client = OpenAIRealtimeClient(api_key)
         self.audio_handler = AudioResponseHandler(api_key)
         
-        # 状态管理
         self.is_running = False
         self.conversation_active = False
         self.last_visual_update = 0
         self.current_visual_context = None
-        
-        # 存储主事件循环引用
+
         self.main_loop = None
         
-        # 音频缓冲管理
         self.audio_buffer = []
-        self.min_audio_duration_ms = 100  # 最少100ms音频
+        self.min_audio_duration_ms = 100  
         self.audio_sample_rate = 24000  # 24kHz
         self.min_audio_samples = int(self.min_audio_duration_ms * self.audio_sample_rate / 1000)
         self.current_audio_samples = 0
         
-        # 防止重复请求
         self.is_processing_audio = False
         
-        # 线程和任务
         self.visual_update_task = None
         self.conversation_task = None
         
-        # 回调设置
         self._setup_callbacks()
         
         logger.info("Realtime Conversation Agent initialized")
     
     def _setup_callbacks(self):
-        """设置各种回调函数"""
         
-        # AI 客户端回调
         self.ai_client.set_text_callback(self._handle_ai_text_response)
         self.ai_client.set_audio_callback(self._handle_ai_audio_response)
         self.ai_client.set_error_callback(self._handle_ai_error)
         
-        # 麦克风回调
         self.microphone.set_speech_callbacks(
             on_start=self._handle_speech_start,
             on_end=self._handle_speech_end
@@ -105,11 +95,10 @@ class RealtimeConversationAgent:
         logger.info("Callbacks configured")
     
     async def start_conversation(self):
-        """开始实时对话"""
+
         try:
             logger.info("Starting realtime conversation agent...")
             
-            # 保存当前事件循环引用
             self.main_loop = asyncio.get_running_loop()
             
             # Start visual input (camera or screen)
@@ -120,37 +109,30 @@ class RealtimeConversationAgent:
                 if not self.visual_input.start_capture():
                     raise Exception("Failed to start camera")
             
-            # 启动麦克风
             if not self.microphone.start_capture(device_index=self.microphone_index):
                 raise Exception("Failed to start microphone")
             
-            # 优化VAD设置以减少延迟
-            self.microphone.set_vad_threshold(300)  # 降低阈值，更敏感
+            self.microphone.set_vad_threshold(300) 
             logger.info("VAD optimized for lower latency")
             
-            # 启动音频播放
             self.audio_handler.start()
             
-            # 连接到 OpenAI Realtime API
+            # OpenAI Realtime API
             if not await self.ai_client.connect():
                 raise Exception("Failed to connect to OpenAI Realtime API")
             
             self.is_running = True
             
-            # 启动后台任务
             self.visual_update_task = asyncio.create_task(self._visual_context_loop())
             self.conversation_task = asyncio.create_task(self._conversation_loop())
             
-            # 发送初始视觉上下文
             await self._update_visual_context()
             
-            # 发送欢迎消息
             await self._send_welcome_message()
             
             logger.info("🎉 Realtime conversation agent started successfully!")
             logger.info("💬 You can now speak naturally - the AI can see and hear you!")
             
-            # 等待任务完成
             await asyncio.gather(self.visual_update_task, self.conversation_task)
             
         except Exception as e:
@@ -159,11 +141,9 @@ class RealtimeConversationAgent:
             raise
     
     async def _send_welcome_message(self):
-        """发送欢迎消息"""
         try:
             welcome_text = (
-                "Hello! I'm your realtime AI Construction copilot. I can see through your camera "
-                "and hear through your microphone. Feel free to ask me anything on our journey together"
+                "Hello! I'm your realtime AI Construction copilot."
             )
             
             await self.ai_client.send_text_message(welcome_text)
@@ -172,7 +152,6 @@ class RealtimeConversationAgent:
             logger.error(f"Failed to send welcome message: {e}")
     
     async def _visual_context_loop(self):
-        """视觉上下文更新循环"""
         while self.is_running:
             try:
                 await self._update_visual_context()
@@ -182,11 +161,9 @@ class RealtimeConversationAgent:
                 await asyncio.sleep(1)
     
     async def _conversation_loop(self):
-        """主对话循环"""
         while self.is_running:
             try:
-                # 这里处理持续的对话逻辑
-                # 主要工作由回调函数处理
+
                 await asyncio.sleep(0.1)
             except Exception as e:
                 logger.error(f"Error in conversation loop: {e}")
@@ -210,9 +187,7 @@ class RealtimeConversationAgent:
             logger.error(f"Error updating visual context: {e}")
     
     async def _send_visual_context_update(self, base64_image: str):
-        """发送视觉上下文更新（静默）"""
         try:
-            # 发送图像作为上下文，不要求回应
             context_message = {
                 "type": "conversation.item.create",
                 "previous_item_id": None,

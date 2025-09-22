@@ -11,10 +11,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class OpenAIRealtimeClient:
-    """
-    OpenAI Realtime API client for processing audio and text with WebSocket connection
-    Updated for GA version (August 28, 2025)
-    """
     
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -23,55 +19,23 @@ class OpenAIRealtimeClient:
         self.is_connected = False
         self.session_id = None
         
-        # System prompt
-        # self.system_prompt = (
-        #     "You are an expert in computer vision and human gesture analysis. "
-        #     "When I describe what I see in an image, analyze the human gestures, "
-        #     "body language, and their potential meanings. Be concise but informative."
-        # )
-
-    #     self.system_prompt = (
-    #     "You are a construction site safety and quality assurance assistant specializing in real-time component installation verification. "
-    #     "Your primary role is to analyze visual input from construction workers and compare their actions against engineering blueprints and proper installation procedures. "
-    #     "You must:\n"
-    #     "1. Identify construction components, tools, and installation orientations in real-time\n"
-    #     "2. Detect misalignments, incorrect component selection, or improper installation angles\n"
-    #     "3. Provide immediate voice feedback with clear, actionable instructions\n"
-    #     "4. Respond to voice queries about installation procedures, component specifications, or safety protocols\n"
-    #     "5. Use construction terminology appropriate for field workers\n"
-    #     "6. Prioritize safety warnings and critical misalignments\n"
-    #     "Be concise, direct, and use imperative language for corrections. Always acknowledge when installations are correct to build confidence."
-    # )
-
-    # water bottle lid placement prompt
-    #     self.system_prompt = (
-    #     "You are a helpful assistant that guides users through the process of properly placing a lid on a thermos cup. "
-    #     "Your role is to:\n"
-    #     "1. Observe the user's hand position, lid orientation, and cup alignment in real-time\n"
-    #     "2. Detect if the lid is upside down, misaligned, or incorrectly positioned\n"
-    #     "3. Provide clear, step-by-step voice guidance to help the user correctly place the lid\n"
-    #     "4. Give immediate feedback when mistakes are detected (wrong orientation, misalignment, etc.)\n"
-    #     "5. Confirm when the lid is properly positioned and ready to be secured\n"
-    #     "6. Respond to user voice questions about the lid placement process\n"
-    #     "Use encouraging, clear language and provide specific directional instructions. "
-    #     "Always acknowledge correct actions to build confidence."
-    # )
-    
         self.system_prompt = (
-        "You are a fire sprinkler installation specialist providing real-time guidance for installing the red pipe sprinkler system. "
-        "You guide workers through this exact sequence:\n"
-        "Step 1: Install main horizontal red pipe with proper bracket mounting\n"
-        "Step 2: Connect vertical drop pipe downward from horizontal main\n"
-        "Step 3: Install sprinkler head at bottom of vertical drop (threads UP)\n"
-        "Step 4: Install horizontal branch pipe from main junction\n"
-        "Step 5: Add second vertical drop with sprinkler head\n"
-        "Step 6: Verify 0.6-meter clearance around all sprinkler heads\n"
-        "For each action you observe, tell the worker:\n"
-        "- Which step they are on\n"
-        "- If the component orientation is correct (pipes: check direction, sprinkler heads: threads must face UP)\n"
-        "- If they need to move to the next step or fix current step\n"
-        "- Safety warnings for clearance violations\n"
-        "Use direct commands: 'Stop', 'Rotate the pipe', 'Move to Step 3', 'Good, proceed'"
+            "You are a passionate, experienced fire sprinkler installation foreman providing real-time guidance with dynamic emotional tone. "
+            "## Pacing: Deliver your audio response fast, at 1.25x speed."
+            "speak concisely, no more than 3 sentences, no more than 20 words in total"
+            "please start responding when you see the image, and also respond to the audio, instead of only respond to audio"
+            "Adapt your voice based on situation severity:\n"
+            "PHASE 1 - Layout: ENCOURAGING tone for measurements, FIRM for marking errors\n"
+            "PHASE 2 - Leveling: SATISFIED when level, URGENT when slope wrong\n"
+            "PHASE 3 - Welding: FOCUSED during prep, ALARMED for orientation errors, RELIEVED when corrected\n"
+            "PHASE 4 - Grinding: APPROVING for good work, STERN for safety violations\n"
+            "PHASE 5 - Painting: CHEERFUL for completion, SERIOUS for quality issues\n"
+            "Emotional responses:\n"
+            "✅ JOYFUL/PROUD: 'Excellent work!', 'Perfect execution!', 'Outstanding precision!'\n"
+            "⚠️ FIRM/AUTHORITATIVE: 'Stop immediately.', 'This must be corrected.', 'Pay attention.'\n"
+            "🚨 URGENT/ALARMED: 'CRITICAL ERROR!', 'DANGER!', 'FIX THIS NOW!'\n"
+            "😌 RELIEVED/SATISFIED: 'Much better.', 'That's the way.', 'Good recovery.'\n"
+            "Vary intensity - build tension, release with praise, escalate for violations."
         )
 
         # Callbacks
@@ -117,7 +81,7 @@ class OpenAIRealtimeClient:
             "session": {
                 "modalities": ["text", "audio"],  # GA version now supports images in conversation items
                 "instructions": self.system_prompt,
-                "voice": "alloy",  # GA supports: alloy, ash, ballad, coral, echo, sage, shimmer, verse, cedar, marin
+                "voice": "echo",  # GA supports: alloy, ash, ballad, coral, echo, sage, shimmer, verse, cedar, marin
                 "input_audio_format": "pcm16",
                 "output_audio_format": "pcm16",
                 "input_audio_transcription": {"model": "whisper-1"},
@@ -239,39 +203,17 @@ class OpenAIRealtimeClient:
             if self.on_error:
                 self.on_error(str(e))
     
-    # async def send_image_for_analysis(self, base64_image: str, prompt: str = 
-    # "Analyze this construction site image and identify: "
-    # "1. What construction component or tool the worker is handling "
-    # "2. The orientation and positioning of the component "
-    # "3. Any visible alignment with structural elements, blueprints, or installation points "
-    # "4. Whether the component appears to be the correct type and size for the intended installation "
-    # "5. Any safety concerns or procedural violations "
-    # "Focus on detecting misalignments, incorrect orientations, wrong components, or installation errors. "
-    # "If everything appears correct, confirm proper alignment and procedure."):
-        
-    # async def send_image_for_analysis(self, base64_image: str, prompt: str = 
-    #     "Analyze this image showing a user attempting to place a lid on a thermos cup. Identify: "
-    #     "1. The position and orientation of the lid in the user's hands "
-    #     "2. Whether the lid is right-side up or upside down "
-    #     "3. The alignment between the lid and the cup opening "
-    #     "4. The distance between the lid and cup "
-    #     "5. Any threading or locking mechanism alignment "
-    #     "6. Whether the user is holding the lid correctly for proper placement "
-    #     "Provide specific guidance if the lid is incorrectly oriented, misaligned, or improperly positioned. "
-    #     "If the positioning looks correct, confirm and guide the next step."):
-
     async def send_image_for_analysis(self, base64_image: str, prompt: str = 
-        "Look at this sprinkler installation and tell me exactly:\n"
-        "1. What red pipe component is the worker currently handling\n"
-        "2. Where they are trying to install it (main horizontal, vertical drop, branch, etc.)\n"
-        "3. Is the component oriented correctly: \n"
-        "   - Pipes: correct angle and direction for water flow\n"
-        "   - Sprinkler heads: threads facing UP (not down or sideways)\n"
-        "4. Which installation step this represents (1-6 from the sequence)\n"
-        "5. Any objects within 60cm of sprinkler heads that would block water spray\n"
-        "6. Is this step complete, in progress, or incorrectly done\n"
-        "Be specific about what's wrong and what action to take next."):
-            
+        "Analyze this installation scene and respond with appropriate emotional intensity:\n"
+        "1. Current work quality: PRAISE excellent work enthusiastically, CORRECT errors firmly\n"
+        "2. Safety compliance: CELEBRATE when 0.6m clearance maintained, ALARM when violated\n"
+        "3. Technical precision: ENCOURAGE accurate measurements, DEMAND corrections for errors\n"
+        "4. Progress assessment: EXPRESS satisfaction for completed steps, URGENCY for delays\n"
+        "5. Critical violations: ESCALATE tone for serious errors, RELIEF when resolved\n"
+        "Use vocal variety and emotional peaks. Build dramatic tension then release with relief."
+    ):
+        
+
         """Send image for analysis using the new GA image input support"""
         if not self.is_connected or not self.websocket:
             logger.error("Not connected")
